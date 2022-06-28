@@ -4,143 +4,149 @@ import React, {
   useRef,
   isValidElementType,
   useCallback,
-} from 'react'
-import PropTypes from 'prop-types'
-import { setup as setupENS } from './ens'
-import _ from 'lodash'
+} from "react";
+import PropTypes from "prop-types";
+import { setup as setupENS } from "./ens";
+import _ from "lodash";
 import {
   getEthAddressType,
   isAddress,
   ETH_ADDRESS_TYPE,
-} from './utils/address.js'
-import Loader from './Loader.js'
-import { SingleNameBlockies } from './Blockies.js'
-import warningImage from './assets/warning.svg'
+} from "./utils/address.js";
+import Loader from "./Loader.js";
+import { SingleNameBlockies } from "./Blockies.js";
+import warningImage from "./assets/warning.svg";
 
-import './style.css'
+import "./style.css";
 
-const ENS_NOT_FOUND = 'ENS name not found'
+const ENS_NOT_FOUND = "ENS name not found";
 
 function Address(props) {
-  const [resolvedAddress, setResolvedAddress] = useState(null)
-  const [inputValue, setInputValue] = useState('')
-  const [isResolvingInProgress, setIsResolvingInProgress] = useState(false)
-  const [error, setError] = useState(null)
-  const [ENS, setENS] = useState(null)
-  const currentInput = useRef()
-
+  const [resolvedAddress, setResolvedAddress] = useState(null);
+  const [inputValue, setInputValue] = useState("");
+  const [isResolvingInProgress, setIsResolvingInProgress] = useState(false);
+  const [error, setError] = useState(null);
+  const [ENS, setENS] = useState(null);
+  const currentInput = useRef();
+  console.log("Check address", resolvedAddress);
   const inputDebouncerHandler = async (input) => {
     try {
-      const result = await resolveName(input)
+      const result = await resolveName(input);
       if (input === currentInput.current) {
-        setError(null)
-        const { address, type, name } = result
+        setError(null);
+        const { address, type, name } = result;
+        console.log("LIB address", address);
+        console.log("LIB type", type);
+        console.log("LIB name", name);
         if (type === ETH_ADDRESS_TYPE.name) {
-          setResolvedAddress(address)
+          console.log("Check ETh Type Name", ETH_ADDRESS_TYPE.name);
+          setResolvedAddress(address);
         } else if (type === ETH_ADDRESS_TYPE.address) {
-          setResolvedAddress(name)
+          console.log("Check ETh Type Address", ETH_ADDRESS_TYPE.address);
+          setResolvedAddress(name);
         }
 
-        props.onResolve(result)
-        props.onError(null)
+        props.onResolve(result);
+        props.onError(null);
       }
       //if newest continue, otherwise ignore
     } catch (error) {
-      setError(error.toString())
-      setResolvedAddress(null)
+      setError(error.toString());
+      setResolvedAddress(null);
 
       props.onResolve({
         address: input,
         name: null,
         type: null,
-      })
-      props.onError(error)
+      });
+      props.onError(error);
     }
-  }
+  };
 
-  const inputDebouncer = _.debounce(inputDebouncerHandler, 500)
+  const inputDebouncer = _.debounce(inputDebouncerHandler, 500);
 
   useEffect(() => {
     async function setup() {
-      const options = {}
-      if(props.ensAddress){
-        options.ensAddress = props.ensAddress
+      const options = {};
+      if (props.ensAddress) {
+        options.ensAddress = props.ensAddress;
       }
       if (props.provider) {
-        options.customProvider = props.provider
+        options.customProvider = props.provider;
       }
-      const { ens } = await setupENS(options)
-      setENS(ens)
+      const { ens } = await setupENS(options);
+      setENS(ens);
     }
-    setup()
-  }, [props.provider])
+    setup();
+  }, [props.provider]);
 
   const handleInput = useCallback(
     async (address) => {
+      console.log("LIB Input change", address);
       if (!address || address.length === 0) {
-        setInputValue('')
-        setError(null)
-        setResolvedAddress(null)
+        setInputValue("");
+        setError(null);
+        setResolvedAddress(null);
 
         if (inputDebouncer) {
-          inputDebouncer.cancel()
+          inputDebouncer.cancel();
         }
       }
 
-      setInputValue(address)
+      setInputValue(address);
       if (inputDebouncer) {
-        inputDebouncer(address)
+        inputDebouncer(address);
       }
     },
     [inputDebouncer]
-  )
+  );
 
   useEffect(() => {
     if (props.presetValue.length !== 0) {
-      handleInput(props.presetValue)
+      handleInput(props.presetValue);
     }
-  }, [props.presetValue, handleInput])
+  }, [props.presetValue, handleInput]);
 
   if (!ENS) {
-    return <Loader className="loader" />
+    return <Loader className="loader" />;
   }
 
   const handleResolver = async (fn) => {
     try {
-      setIsResolvingInProgress(true)
-      setResolvedAddress(null)
-      return await fn()
+      setIsResolvingInProgress(true);
+      setResolvedAddress(null);
+      return await fn();
     } catch (error) {
-      if (error && error.message && error.message === ENS_NOT_FOUND) return
-      throw error
+      if (error && error.message && error.message === ENS_NOT_FOUND) return;
+      throw error;
     } finally {
-      setIsResolvingInProgress(false)
+      setIsResolvingInProgress(false);
     }
-  }
+  };
 
   const resolveName = async (inputValue) => {
     // update latest input resolving
-    currentInput.current = inputValue
-    const addressType = getEthAddressType(inputValue)
+    currentInput.current = inputValue;
+    const addressType = getEthAddressType(inputValue);
 
     if (addressType === ETH_ADDRESS_TYPE.name) {
       return await handleResolver(async () => ({
         input: inputValue,
         address: await ENS.getAddress(inputValue),
         name: inputValue,
-        type: 'name',
-      }))
+        type: "name",
+      }));
     } else if (addressType === ETH_ADDRESS_TYPE.address) {
       return await handleResolver(async () => ({
         input: inputValue,
         name: (await ENS.getName(inputValue)).name,
         address: inputValue,
-        type: 'address',
-      }))
+        type: "address",
+      }));
     }
 
-    throw 'Incorrect address or name'
-  }
+    throw "Incorrect address or name";
+  };
 
   const isResolveNameNotFound = () => {
     return (
@@ -148,17 +154,17 @@ function Address(props) {
       inputValue &&
       !isResolvingInProgress &&
       getEthAddressType(inputValue) !== ETH_ADDRESS_TYPE.address
-    )
-  }
+    );
+  };
 
   const showBlockies = () => {
     if (props.showBlockies) {
-      let address
+      let address;
 
       if (isAddress(inputValue)) {
-        address = inputValue
+        address = inputValue;
       } else if (isAddress(resolvedAddress)) {
-        address = resolvedAddress
+        address = resolvedAddress;
       }
 
       if (address) {
@@ -168,16 +174,17 @@ function Address(props) {
             imageSize={30}
             className="blockies"
           />
-        )
+        );
       }
     }
-  }
+  };
 
   return (
     <div className={`cmp-address-wrapper ${props.className}`}>
+      <div>Trial Testing</div>
       <div
-        className={`cmp-address  ${resolvedAddress ? 'resolved' : ''} ${
-          error ? 'error' : ''
+        className={`cmp-address  ${resolvedAddress ? "resolved" : ""} ${
+          error ? "error" : ""
         }`}
       >
         <div className="input-wrapper">
@@ -206,7 +213,7 @@ function Address(props) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 Address.propTypes = {
@@ -217,22 +224,22 @@ Address.propTypes = {
     if (props[propName] && !isValidElementType(props[propName])) {
       return new Error(
         `Invalid prop 'component' supplied to 'Route': the prop is not a valid React component`
-      )
+      );
     }
   },
   onError: PropTypes.func,
   onResolve: PropTypes.func,
   className: PropTypes.string,
-}
+};
 
 Address.defaultProps = {
-  presetValue: '',
-  placeholder: 'Enter Ethereum name or address',
+  presetValue: "",
+  placeholder: "Enter Ethereum name or address Check if it working",
   showBlockies: true,
   DefaultIcon: null,
-  className: '',
+  className: "",
   onError: function () {},
   onResolve: function () {},
-}
+};
 
-export default Address
+export default Address;
