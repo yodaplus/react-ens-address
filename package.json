@@ -50,7 +50,7 @@
   "dependencies": {
     "@emotion/core": "^10.0.14",
     "@emotion/styled": "^10.0.14",
-    "@ensdomains/ui": "https://github.com/yodaplus/ui.git#final-mainnet",
+    "@ensdomains/ui": "https://github.com/yodaplus/ui.git#go-domains",
     "ethers": "^4.0.32",
     "lodash": "^4.17.13"
   },
